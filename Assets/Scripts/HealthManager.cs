@@ -1,32 +1,38 @@
-
 using System.Collections.Generic;
 using UnityEngine;
 
 public class HealthManager : MonoBehaviour
 {
-    public GameObject heartPrefab; // Heart prefab to instantiate
-    public Transform heartContainer; // Parent container for hearts
+    public GameObject heartPrefab;
+    public Transform heartContainer;
 
-    private List<GameObject> hearts = new List<GameObject>(); // List to hold heart GameObjects
-    public int maxHealth = 5; // Maximum health points
+    // This list keeps track of the hearts on screen.
+    private List<GameObject> hearts = new List<GameObject>();
 
+    // This is how many hearts the player starts with.
+    public int maxHealth = 5;
+
+    // This runs when the HealthManager object starts.
     void Start()
     {
         InitializeHealth();
     }
 
-    // Initialize health by creating heart GameObjects
+    // This creates the starting hearts.
     void InitializeHealth()
     {
         for (int i = 0; i < maxHealth; i++)
         {
             GameObject heart = Instantiate(heartPrefab, heartContainer);
-            heart.transform.localPosition = new Vector3(i * 50, 0, 0); // Adjust spacing as needed
+
+            // This spaces each heart beside the last one.
+            heart.transform.localPosition = new Vector3(i * 50, 0, 0);
+
             hearts.Add(heart);
         }
     }
 
-    // Method to remove a heart
+    // This removes one heart from the screen.
     public void RemoveHeart()
     {
         if (hearts.Count > 0)
@@ -37,4 +43,3 @@ public class HealthManager : MonoBehaviour
         }
     }
 }
-
