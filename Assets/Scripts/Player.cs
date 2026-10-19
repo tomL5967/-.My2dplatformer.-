@@ -8,8 +8,8 @@ public class Player : MonoBehaviour
     public Animator animator;
 
     [Header("Movement")]
-    public float speed = 5f;
-    public float jumpForce = 8f;
+    public float speed = 3f;
+    public float jumpForce = 12f;
     public float jumpCutMultiplier = 0.5f;
 
     [Header("Gravity")]
