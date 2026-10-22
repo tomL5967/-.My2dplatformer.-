@@ -26,46 +26,60 @@ public class Player : MonoBehaviour
 
     private bool isGrounded;
 
-
     void Update()
     {
         CheckGrounded();
         Flip();
         ApplyGravity();
 
-        // Idle / Run animation
+        // Tell the Animator whether we are moving sideways.
         animator.SetFloat("Speed", Mathf.Abs(moveInput.x));
-    }
 
+        // Positive means rising. Negative means falling.
+        animator.SetFloat("YVelocity", rb.linearVelocity.y);
+
+        // Tell the Animator whether we are on the ground.
+        animator.SetBool("Grounded", isGrounded);
+    }
 
     void FixedUpdate()
     {
-        // Left and right movement
+        // Move sideways while keeping our upward or downward speed.
         rb.linearVelocity = new Vector2(
             moveInput.x * speed,
             rb.linearVelocity.y
         );
     }
 
-
     public void OnMove(InputValue value)
     {
         moveInput = value.Get<Vector2>();
     }
 
-
     public void OnJump(InputValue value)
     {
-        // Press Space = jump
-        if (value.isPressed)
+        CheckGrounded();
+
+        // Only start a jump when we are on the ground.
+        if (value.isPressed && isGrounded)
         {
             rb.linearVelocity = new Vector2(
                 rb.linearVelocity.x,
                 jumpForce
             );
+
+            isGrounded = false;
+
+            // Update these immediately so Takeoff does not
+            // mistake the start of our jump for a landing.
+            animator.SetBool("Grounded", false);
+            animator.SetFloat("YVelocity", rb.linearVelocity.y);
+
+            // Start the takeoff animation.
+            animator.SetTrigger("Jump");
         }
 
-        // Let go of Space early = smaller jump
+        // Releasing the button early makes the jump shorter.
         if (!value.isPressed && rb.linearVelocity.y > 0)
         {
             rb.linearVelocity = new Vector2(
@@ -75,18 +89,14 @@ public class Player : MonoBehaviour
         }
     }
 
-
     void Flip()
     {
         Vector3 scale = transform.localScale;
 
-        // Face right
         if (moveInput.x > 0.1f)
         {
             scale.x = Mathf.Abs(scale.x);
         }
-
-        // Face left
         else if (moveInput.x < -0.1f)
         {
             scale.x = -Mathf.Abs(scale.x);
@@ -95,38 +105,38 @@ public class Player : MonoBehaviour
         transform.localScale = scale;
     }
 
-
     void ApplyGravity()
     {
-        // Going upwards
+        // Going upwards.
         if (rb.linearVelocity.y > 0.1f)
         {
             rb.gravityScale = jumpGravity;
         }
 
-        // Falling
+        // Falling.
         else if (rb.linearVelocity.y < -0.1f)
         {
             rb.gravityScale = fallGravity;
         }
 
-        // Standing / top of jump
+        // Standing still or at the top of the jump.
         else
         {
             rb.gravityScale = normalGravity;
         }
     }
 
-
     void CheckGrounded()
     {
+        // Check for ground under our feet.
+        // While rising, we count as airborne even if the
+        // small checking circle still overlaps the floor.
         isGrounded = Physics2D.OverlapCircle(
             groundCheck.position,
             groundCheckRadius,
             groundLayer
-        );
+        ) != null && rb.linearVelocity.y <= 0.1f;
     }
-
 
     private void OnDrawGizmosSelected()
     {
