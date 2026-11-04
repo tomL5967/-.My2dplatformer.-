@@ -46,7 +46,6 @@ public class MovingPlatform : MonoBehaviour
         // Carry the player's Rigidbody2D along with the platform.
         if (playerRb != null)
         {
-            playerRb.position += platformMovement;
         }
 
         if (Vector2.Distance(newPosition, target) < 0.01f)
