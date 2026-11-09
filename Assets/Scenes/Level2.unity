@@ -10978,6 +10978,52 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
+--- !u!1 &858365283
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 858365285}
+  - component: {fileID: 858365284}
+  m_Layer: 0
+  m_Name: Background
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &858365284
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 858365283}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ff4c549cdfdb16e41a6d07cd5e13c884, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Backgrounds
+  cameraTransform: {fileID: 0}
+  parallaxAmount: 0.21
+--- !u!4 &858365285
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 858365283}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -8.77816, y: 10.91326, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &875398861
 GameObject:
   m_ObjectHideFlags: 0
@@ -12280,6 +12326,14 @@ MonoBehaviour:
   speed: 12
   jumpForce: 18
   jumpCutMultiplier: 0.5
+  timeToRunBoost: 3
+  runSpeedMultiplier: 1.1
+  jumpsForBoost: 3
+  jumpComboResetTime: 1.5
+  jumpHeightMultiplier: 1.07
+  jumpComboSpeedMultiplier: 1.15
+  jumpComboSpeedDuration: 1.5
+  speedEffect: {fileID: 0}
   normalGravity: 6
   jumpGravity: 4
   fallGravity: 12
@@ -12703,3 +12757,4 @@ SceneRoots:
   - {fileID: 279452515}
   - {fileID: 1138872584}
   - {fileID: 1099486568}
+  - {fileID: 858365285}

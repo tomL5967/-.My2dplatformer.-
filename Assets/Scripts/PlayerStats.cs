@@ -6,7 +6,7 @@ public class PlayerStats : MonoBehaviour
     [Header("Health")]
     public int maxHealth = 100;
     public int health;
-    public int slimeDamage = 20;
+    public int enemyDamage = 20;
     public float damageDelay = 1f;
 
     [Header("Stamina")]
@@ -27,19 +27,17 @@ public class PlayerStats : MonoBehaviour
     private float recoveryTime;
     private Player player;
 
-    void Awake()
+    private void Awake()
     {
         player = GetComponent<Player>();
 
-        // Start the game with full health and stamina.
         health = maxHealth;
         stamina = maxStamina;
         isDead = false;
     }
 
-    void Start()
+    private void Start()
     {
-        // Hide the death message while we are alive.
         if (deathText != null)
         {
             deathText.SetActive(false);
@@ -48,14 +46,13 @@ public class PlayerStats : MonoBehaviour
         UpdateBars();
     }
 
-    void Update()
+    private void Update()
     {
         if (isDead)
         {
             return;
         }
 
-        // Recover stamina after a short pause.
         if (Time.time >= recoveryTime)
         {
             stamina = Mathf.Min(
@@ -69,15 +66,12 @@ public class PlayerStats : MonoBehaviour
 
     public bool UseAttackStamina()
     {
-        // Do not attack if we are dead or too tired.
         if (isDead || stamina < attackCost)
         {
             return false;
         }
 
-        stamina = stamina - attackCost;
-
-        // Restart the wait before stamina begins refilling.
+        stamina -= attackCost;
         recoveryTime = Time.time + recoveryDelay;
 
         UpdateBars();
@@ -86,8 +80,6 @@ public class PlayerStats : MonoBehaviour
 
     public void TakeDamage(int damage)
     {
-        // Allow a short break between hits.
-        // Otherwise, touching a slime would hurt every frame.
         if (isDead || Time.time < nextDamageTime)
         {
             return;
@@ -104,30 +96,29 @@ public class PlayerStats : MonoBehaviour
         }
     }
 
-    void OnCollisionEnter2D(Collision2D collision)
+    private void OnCollisionEnter2D(Collision2D collision)
     {
-        CheckSlime(collision);
+        CheckEnemy(collision);
     }
 
-    void OnCollisionStay2D(Collision2D collision)
+    private void OnCollisionStay2D(Collision2D collision)
     {
-        CheckSlime(collision);
+        CheckEnemy(collision);
     }
 
-    void CheckSlime(Collision2D collision)
+    private void CheckEnemy(Collision2D collision)
     {
-        // Check whether the object touching us is a slime.
-        Slime slime = collision.gameObject.GetComponentInParent<Slime>();
+        EnemyController enemy =
+            collision.gameObject.GetComponentInParent<EnemyController>();
 
-        if (slime != null)
+        if (enemy != null)
         {
-            TakeDamage(slimeDamage);
+            TakeDamage(enemyDamage);
         }
     }
 
-    void UpdateBars()
+    private void UpdateBars()
     {
-        // Make the health bar match our health.
         if (healthBar != null)
         {
             healthBar.minValue = 0;
@@ -135,7 +126,6 @@ public class PlayerStats : MonoBehaviour
             healthBar.value = health;
         }
 
-        // Make the stamina bar match our stamina.
         if (staminaBar != null)
         {
             staminaBar.minValue = 0;
@@ -144,19 +134,31 @@ public class PlayerStats : MonoBehaviour
         }
     }
 
-    void Die()
+    private void Die()
     {
         isDead = true;
 
-        // Turn off the player's controls.
-        player.playerInput.DeactivateInput();
-        player.moveInput = Vector2.zero;
-        player.enabled = false;
+        if (player != null)
+        {
+            if (player.playerInput != null)
+            {
+                player.playerInput.DeactivateInput();
+            }
 
-        // Freeze the player and stop their animation.
-        player.rb.linearVelocity = Vector2.zero;
-        player.rb.simulated = false;
-        player.animator.enabled = false;
+            player.moveInput = Vector2.zero;
+            player.enabled = false;
+
+            if (player.rb != null)
+            {
+                player.rb.linearVelocity = Vector2.zero;
+                player.rb.simulated = false;
+            }
+
+            if (player.animator != null)
+            {
+                player.animator.enabled = false;
+            }
+        }
 
         if (deathText != null)
         {

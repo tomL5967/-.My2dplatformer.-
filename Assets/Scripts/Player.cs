@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -11,6 +12,23 @@ public class Player : MonoBehaviour
     public float speed = 3f;
     public float jumpForce = 12f;
     public float jumpCutMultiplier = 0.5f;
+
+    [Header("Run Boost")]
+    public float timeToRunBoost = 3f;
+    public float runSpeedMultiplier = 1.1f;
+    public ParticleSystem speedEffect;
+
+    [Header("Jump Combo")]
+    public int jumpsForBoost = 3;
+    public float jumpComboResetTime = 1.5f;
+    public float jumpHeightMultiplier = 1.07f;
+    public float jumpComboSpeedMultiplier = 1.15f;
+    public float jumpComboSpeedDuration = 1.5f;
+    public ParticleSystem jumpBoostEffect;
+
+    [Header("Attack Combo")]
+    [Range(0f, 1f)]
+    public float comboInputStart = 0.35f;
 
     [Header("Gravity")]
     public float normalGravity = 6f;
@@ -31,90 +49,164 @@ public class Player : MonoBehaviour
     public Vector2 moveInput;
 
     private bool isGrounded;
-    private bool attackRequested;
+    private bool secondAttackQueued;
     private PlayerStats stats;
+
+    private float continuousRunTime;
+    private float lastRunDirection;
+    private int consecutiveJumps;
+    private float lastJumpTime = -999f;
+    private float jumpSpeedBoostUntil;
 
     void Awake()
     {
-        // Find the health and stamina script on this player.
         stats = GetComponent<PlayerStats>();
+
+        if (rb == null)
+            rb = GetComponent<Rigidbody2D>();
+
+        if (animator == null)
+            animator = GetComponent<Animator>();
+
+        if (playerInput == null)
+            playerInput = GetComponent<PlayerInput>();
     }
 
     void Update()
     {
-        if (stats.isDead)
-        {
+        if (stats != null && stats.isDead)
             return;
-        }
 
         CheckGrounded();
+        UpdateRunTime();
+        UpdateSpeedEffect();
         Flip();
         ApplyGravity();
 
-        // Tell the Animator how we are moving.
-        animator.SetFloat("Speed", Mathf.Abs(moveInput.x));
-        animator.SetFloat("YVelocity", rb.linearVelocity.y);
-        animator.SetBool("Grounded", isGrounded);
-
-        // Once the Animator has used the attack trigger,
-        // we no longer have an attack waiting to start.
-        if (attackRequested && !animator.GetBool("Attack"))
+        if (animator != null)
         {
-            attackRequested = false;
+            animator.SetFloat("Speed", Mathf.Abs(moveInput.x));
+            animator.SetFloat("YVelocity", rb.linearVelocity.y);
+            animator.SetBool("Grounded", isGrounded);
         }
     }
 
     void FixedUpdate()
     {
-        if (stats.isDead)
-        {
+        if (stats != null && stats.isDead)
             return;
+
+        float currentSpeed = speed;
+
+        if (Mathf.Abs(moveInput.x) > 0.1f &&
+            continuousRunTime >= timeToRunBoost)
+        {
+            currentSpeed *= runSpeedMultiplier;
         }
 
-        // Move sideways without changing our vertical speed.
+        if (Time.time < jumpSpeedBoostUntil)
+        {
+            currentSpeed *= jumpComboSpeedMultiplier;
+        }
+
         rb.linearVelocity = new Vector2(
-            moveInput.x * speed,
+            moveInput.x * currentSpeed,
             rb.linearVelocity.y
         );
     }
 
-    public void OnMove(InputValue value)
+    void UpdateRunTime()
     {
-        if (stats.isDead)
+        if (Mathf.Abs(moveInput.x) <= 0.1f)
         {
+            continuousRunTime = 0f;
+            lastRunDirection = 0f;
             return;
         }
+
+        float currentDirection = Mathf.Sign(moveInput.x);
+
+        if (lastRunDirection != 0f &&
+            currentDirection != lastRunDirection)
+        {
+            continuousRunTime = 0f;
+        }
+
+        continuousRunTime += Time.deltaTime;
+        lastRunDirection = currentDirection;
+    }
+
+    void UpdateSpeedEffect()
+    {
+        if (speedEffect == null)
+            return;
+
+        bool hasRunBoost =
+            Mathf.Abs(moveInput.x) > 0.1f &&
+            continuousRunTime >= timeToRunBoost;
+
+        bool hasJumpSpeedBoost = Time.time < jumpSpeedBoostUntil;
+        bool shouldPlay = hasRunBoost || hasJumpSpeedBoost;
+
+        if (shouldPlay && !speedEffect.isPlaying)
+            speedEffect.Play();
+        else if (!shouldPlay && speedEffect.isPlaying)
+            speedEffect.Stop();
+    }
+
+    public void OnMove(InputValue value)
+    {
+        if (stats != null && stats.isDead)
+            return;
 
         moveInput = value.Get<Vector2>();
     }
 
     public void OnJump(InputValue value)
     {
-        if (stats.isDead)
-        {
+        if (stats != null && stats.isDead)
             return;
-        }
 
         CheckGrounded();
 
-        // Only start a jump while touching the ground.
         if (value.isPressed && isGrounded)
         {
+            if (Time.time - lastJumpTime > jumpComboResetTime)
+                consecutiveJumps = 0;
+
+            consecutiveJumps++;
+            lastJumpTime = Time.time;
+
+            float currentJumpForce = jumpForce;
+
+            if (consecutiveJumps >= jumpsForBoost)
+            {
+                currentJumpForce *= jumpHeightMultiplier;
+                jumpSpeedBoostUntil =
+                    Time.time + jumpComboSpeedDuration;
+
+                consecutiveJumps = 0;
+
+                if (jumpBoostEffect != null)
+                    jumpBoostEffect.Play();
+            }
+
             rb.linearVelocity = new Vector2(
                 rb.linearVelocity.x,
-                jumpForce
+                currentJumpForce
             );
 
             isGrounded = false;
 
-            // Tell the Animator immediately that we have jumped.
-            animator.SetBool("Grounded", false);
-            animator.SetFloat("YVelocity", rb.linearVelocity.y);
-            animator.SetTrigger("Jump");
+            if (animator != null)
+            {
+                animator.SetBool("Grounded", false);
+                animator.SetFloat("YVelocity", rb.linearVelocity.y);
+                animator.SetTrigger("Jump");
+            }
         }
 
-        // Letting go early makes the jump shorter.
-        if (!value.isPressed && rb.linearVelocity.y > 0)
+        if (!value.isPressed && rb.linearVelocity.y > 0f)
         {
             rb.linearVelocity = new Vector2(
                 rb.linearVelocity.x,
@@ -125,8 +217,10 @@ public class Player : MonoBehaviour
 
     public void OnAttack(InputValue value)
     {
-        // Ignore releases, death and an attack already requested.
-        if (!value.isPressed || stats.isDead || attackRequested)
+        if (!value.isPressed ||
+            (stats != null && stats.isDead) ||
+            !isGrounded ||
+            animator == null)
         {
             return;
         }
@@ -134,43 +228,54 @@ public class Player : MonoBehaviour
         AnimatorStateInfo state =
             animator.GetCurrentAnimatorStateInfo(0);
 
-        // Start attacks from idle or running while grounded.
-        if (isGrounded &&
-            !animator.IsInTransition(0) &&
-            (state.IsName("idle") || state.IsName("Run")))
+        if (state.IsName("Attack1"))
         {
-            // Only swing if we have enough stamina.
-            if (stats.UseAttackStamina())
+            if (!secondAttackQueued &&
+                state.normalizedTime >= comboInputStart &&
+                (stats == null || stats.UseAttackStamina()))
             {
-                attackRequested = true;
-                animator.SetTrigger("Attack");
+                animator.SetTrigger("Attack2");
+                secondAttackQueued = true;
             }
+
+            return;
         }
+
+        if (state.IsName("Attack2"))
+            return;
+
+        if (stats != null && !stats.UseAttackStamina())
+            return;
+
+        secondAttackQueued = false;
+        animator.SetTrigger("Attack1");
     }
 
     public void DealDamage()
     {
-        // This method is called by the Attack animation event.
-        if (stats.isDead || attackPoint == null)
-        {
+        // Add this as an Animation Event on the hit frame
+        // of both attack animations.
+        if ((stats != null && stats.isDead) || attackPoint == null)
             return;
-        }
 
-        // Find enemy colliders inside the sword's hit area.
         Collider2D[] enemies = Physics2D.OverlapCircleAll(
             attackPoint.position,
             attackRadius,
             enemyLayer
         );
 
-        foreach (Collider2D enemy in enemies)
-        {
-            Slime slime = enemy.GetComponent<Slime>();
+        // Prevent one attack hitting the same enemy twice
+        // if it has multiple colliders.
+        HashSet<EnemyController> hitEnemies =
+            new HashSet<EnemyController>();
 
-            if (slime != null)
-            {
-                slime.TakeDamage(attackDamage);
-            }
+        foreach (Collider2D enemyCollider in enemies)
+        {
+            EnemyController enemy =
+                enemyCollider.GetComponentInParent<EnemyController>();
+
+            if (enemy != null && hitEnemies.Add(enemy))
+                enemy.TakeDamage(attackDamage);
         }
     }
 
@@ -178,56 +283,43 @@ public class Player : MonoBehaviour
     {
         Vector3 scale = transform.localScale;
 
-        // Face right.
         if (moveInput.x > 0.1f)
-        {
             scale.x = Mathf.Abs(scale.x);
-        }
-
-        // Face left.
         else if (moveInput.x < -0.1f)
-        {
             scale.x = -Mathf.Abs(scale.x);
-        }
 
         transform.localScale = scale;
     }
 
     void ApplyGravity()
     {
-        // Going upwards.
         if (rb.linearVelocity.y > 0.1f)
-        {
             rb.gravityScale = jumpGravity;
-        }
-
-        // Falling.
         else if (rb.linearVelocity.y < -0.1f)
-        {
             rb.gravityScale = fallGravity;
-        }
-
-        // Standing still or at the top of the jump.
         else
-        {
             rb.gravityScale = normalGravity;
-        }
     }
 
     void CheckGrounded()
     {
-        // Check for ground beneath our feet.
-        // While rising, count as airborne.
-        isGrounded = Physics2D.OverlapCircle(
-            groundCheck.position,
-            groundCheckRadius,
-            groundLayer
-        ) != null && rb.linearVelocity.y <= 0.1f;
+        if (groundCheck == null || rb == null)
+        {
+            isGrounded = false;
+            return;
+        }
+
+        isGrounded =
+            Physics2D.OverlapCircle(
+                groundCheck.position,
+                groundCheckRadius,
+                groundLayer
+            ) != null &&
+            rb.linearVelocity.y <= 0.1f;
     }
 
-    private void OnDrawGizmosSelected()
+    void OnDrawGizmosSelected()
     {
-        // Show the ground-check circle.
         if (groundCheck != null)
         {
             Gizmos.color = Color.white;
@@ -237,7 +329,6 @@ public class Player : MonoBehaviour
             );
         }
 
-        // Show the sword's damage area.
         if (attackPoint != null)
         {
             Gizmos.color = Color.red;

@@ -20,29 +20,37 @@ public class EnemyAI : MonoBehaviour
 
     public float attackCooldown = 1.5f;
 
+    [Header("Stomp")]
+    public float stompBounceForce = 8f;
+    public float stompTolerance = 0.2f;
+
     private Rigidbody2D rb;
+    private Collider2D slimeCollider;
     private float startingX;
     private int patrolDirection = 1;
 
     private float nextJumpTime;
     private float nextAttackTime;
+    private bool isDead;
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        slimeCollider = GetComponent<Collider2D>();
 
-        // Remember where the slime started its patrol.
-        startingX = rb.position.x;
+        if (rb != null)
+        {
+            startingX = rb.position.x;
+        }
     }
 
     void FixedUpdate()
     {
-        if (player == null || groundCheck == null)
+        if (isDead || rb == null || player == null || groundCheck == null)
         {
             return;
         }
 
-        // Check for ground just underneath the slime.
         bool grounded = Physics2D.OverlapCircle(
             groundCheck.position,
             groundCheckRadius,
@@ -60,26 +68,20 @@ public class EnemyAI : MonoBehaviour
         {
             if (distance > attackRange)
             {
-                // Move left or right towards the player.
                 float direction = Mathf.Sign(
                     player.position.x - transform.position.x
                 );
 
                 horizontalSpeed = direction * moveSpeed;
             }
-            else
+            else if (Time.time >= nextAttackTime)
             {
-                // Stop moving sideways when close enough to attack.
-                if (Time.time >= nextAttackTime)
-                {
-                    Debug.Log("The enemy attacks the player!");
-                    nextAttackTime = Time.time + attackCooldown;
-                }
+                Debug.Log("The enemy attacks the player!");
+                nextAttackTime = Time.time + attackCooldown;
             }
         }
         else
         {
-            // Turn around at either end of the patrol.
             if (rb.position.x >= startingX + patrolDistance)
             {
                 patrolDirection = -1;
@@ -92,13 +94,11 @@ public class EnemyAI : MonoBehaviour
             horizontalSpeed = patrolDirection * patrolSpeed;
         }
 
-        // Change sideways movement while keeping gravity working.
         rb.linearVelocity = new Vector2(
             horizontalSpeed,
             rb.linearVelocity.y
         );
 
-        // Only hop while moving, touching the ground and ready.
         if (grounded &&
             horizontalSpeed != 0f &&
             rb.linearVelocity.y <= 0f &&
@@ -110,6 +110,58 @@ public class EnemyAI : MonoBehaviour
             );
 
             nextJumpTime = Time.time + jumpDelay;
+        }
+    }
+
+    private void OnCollisionStay2D(Collision2D collision)
+    {
+        if (isDead || rb == null || slimeCollider == null)
+        {
+            return;
+        }
+
+        Rigidbody2D playerRb = collision.rigidbody;
+
+        if (playerRb == null)
+        {
+            return;
+        }
+
+        bool isPlayer =
+            playerRb.gameObject.CompareTag("Player") ||
+            collision.gameObject.CompareTag("Player") ||
+            collision.transform.root.CompareTag("Player");
+
+        if (!isPlayer)
+        {
+            return;
+        }
+
+        Collider2D playerCollider =
+            playerRb.GetComponentInChildren<Collider2D>();
+
+        if (playerCollider == null)
+        {
+            return;
+        }
+
+        bool feetAreAtSlimeTop =
+            playerCollider.bounds.min.y >=
+            slimeCollider.bounds.max.y - stompTolerance;
+
+        if (feetAreAtSlimeTop)
+        {
+            isDead = true;
+
+            playerRb.linearVelocity = new Vector2(
+                playerRb.linearVelocity.x,
+                stompBounceForce
+            );
+
+            rb.linearVelocity = Vector2.zero;
+            slimeCollider.enabled = false;
+
+            Destroy(gameObject);
         }
     }
 }
