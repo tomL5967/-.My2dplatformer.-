@@ -27,6 +27,8 @@ public class PlayerStats : MonoBehaviour
     private float recoveryTime;
     private Player player;
 
+    private static int savedHealth = -1;
+
     private void Awake()
     {
         player = GetComponent<Player>();
@@ -34,6 +36,12 @@ public class PlayerStats : MonoBehaviour
         health = maxHealth;
         stamina = maxStamina;
         isDead = false;
+        if (savedHealth == -1)
+        {
+            savedHealth = maxHealth;
+        }
+
+        health = savedHealth;
     }
 
     private void Start()
@@ -87,12 +95,14 @@ public class PlayerStats : MonoBehaviour
 
         health = Mathf.Max(0, health - damage);
         nextDamageTime = Time.time + damageDelay;
+        savedHealth = health;
 
         UpdateBars();
 
         if (health <= 0)
         {
             Die();
+
         }
     }
 
@@ -160,11 +170,11 @@ public class PlayerStats : MonoBehaviour
             }
         }
 
-        if (deathText != null)
-        {
-            deathText.SetActive(true);
-        }
+        PlayerRespawn respawn = GetComponent<PlayerRespawn>();
 
-        Debug.Log("You died!");
+        if (respawn != null)
+        {
+            respawn.ShowDeathMenu();
+        }
     }
 }

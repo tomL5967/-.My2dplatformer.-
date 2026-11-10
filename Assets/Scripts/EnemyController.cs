@@ -244,17 +244,7 @@ public class EnemyController : MonoBehaviour
 
         spriteRenderer.flipX = (direction < 0f) == spriteFacesRight;
     }
-    void DropCurrency()
-    {
-        if (CurrencyManager.Instance == null)
-            return;
-
-        int gold = Random.Range(minGoldDrop, maxGoldDrop + 1);
-        int silver = Random.Range(minSilverDrop, maxSilverDrop + 1);
-
-        CurrencyManager.Instance.AddGold(gold);
-        CurrencyManager.Instance.AddSilver(silver);
-    }
+   
 
     public void TakeDamage(int damage)
     {
@@ -265,7 +255,7 @@ public class EnemyController : MonoBehaviour
 
         if (currentHealth <= 0)
         {
-            DropCurrency();
+            
             Destroy(gameObject);
             return;
         }
