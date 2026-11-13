@@ -54,6 +54,11 @@ public class EnemyController : MonoBehaviour
     public int minSilverDrop = 1;
     public int maxSilverDrop = 5;
 
+    [Header("Gold Drops")]
+    public GameObject goldPrefab;
+    public int minGold = 1;
+    public int maxGold = 5;
+
     private Rigidbody2D rb;
     private int currentHealth;
     private float startingX;
@@ -256,6 +261,7 @@ public class EnemyController : MonoBehaviour
         if (currentHealth <= 0)
         {
             
+            DropGold();
             Destroy(gameObject);
             return;
         }
@@ -344,6 +350,27 @@ public class EnemyController : MonoBehaviour
         {
             Gizmos.color = Color.yellow;
             Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
+        }
+    }
+
+    void DropGold()
+    {
+        if (goldPrefab == null)
+        {
+            return;
+        }
+
+        GameObject coin = Instantiate(
+            goldPrefab,
+            transform.position + Vector3.up * 0.3f,
+            Quaternion.identity
+        );
+
+        GoldPickup pickup = coin.GetComponent<GoldPickup>();
+
+        if (pickup != null)
+        {
+            pickup.amount = Random.Range(minGold, maxGold + 1);
         }
     }
 }
