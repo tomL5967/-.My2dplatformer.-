@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,12 +10,24 @@ public class PlayerStats : MonoBehaviour
     public int enemyDamage = 20;
     public float damageDelay = 1f;
 
+    public void HealToFull()
+    {
+        if (isDead) return;
+
+        health = maxHealth;
+        UpdateBars();
+    }
+
     [Header("Stamina")]
     public float maxStamina = 100f;
     public float stamina;
     public float attackCost = 20f;
     public float staminaRecovery = 25f;
     public float recoveryDelay = 1f;
+
+    [Header("Damage Flash")]
+    public SpriteRenderer spriteRenderer;
+    public float redFlashTime = 0.12f;
 
     [Header("UI")]
     public Slider healthBar;
@@ -27,15 +40,25 @@ public class PlayerStats : MonoBehaviour
     private float recoveryTime;
     private Player player;
 
+    private Color originalColor;
+    private Coroutine flashRoutine;
+
     private static int savedHealth = -1;
 
     private void Awake()
     {
         player = GetComponent<Player>();
 
+        if (spriteRenderer == null)
+            spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+
+        if (spriteRenderer != null)
+            originalColor = spriteRenderer.color;
+
         health = maxHealth;
         stamina = maxStamina;
         isDead = false;
+
         if (savedHealth == -1)
         {
             savedHealth = maxHealth;
@@ -88,7 +111,7 @@ public class PlayerStats : MonoBehaviour
 
     public void TakeDamage(int damage)
     {
-        if (isDead || Time.time < nextDamageTime)
+        if (isDead || damage <= 0 || Time.time < nextDamageTime)
         {
             return;
         }
@@ -97,13 +120,55 @@ public class PlayerStats : MonoBehaviour
         nextDamageTime = Time.time + damageDelay;
         savedHealth = health;
 
+        // Only play effects when damage is accepted.
+        if (player != null)
+        {
+            player.PlayHurtSound();
+        }
+
+        FlashRed();
         UpdateBars();
 
         if (health <= 0)
         {
             Die();
-
         }
+    }
+
+    private void FlashRed()
+    {
+        if (spriteRenderer == null)
+            return;
+
+        if (flashRoutine != null)
+            StopCoroutine(flashRoutine);
+
+        flashRoutine = StartCoroutine(RedFlash());
+    }
+
+    private IEnumerator RedFlash()
+    {
+        spriteRenderer.color = Color.red;
+
+        // Restores the colour even if the death menu pauses time.
+        yield return new WaitForSecondsRealtime(redFlashTime);
+
+        if (spriteRenderer != null)
+            spriteRenderer.color = originalColor;
+
+        flashRoutine = null;
+    }
+
+    private void OnDisable()
+    {
+        if (flashRoutine != null)
+        {
+            StopCoroutine(flashRoutine);
+            flashRoutine = null;
+        }
+
+        if (spriteRenderer != null)
+            spriteRenderer.color = originalColor;
     }
 
     private void OnCollisionEnter2D(Collision2D collision)

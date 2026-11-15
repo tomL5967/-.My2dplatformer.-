@@ -144,6 +144,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GoldPickup
   amount: 1
+  collectSound: {fileID: 8300000, guid: 7c860635b059d8b439ea5c05f879715f, type: 3}
+  soundVolume: 0.7
 --- !u!50 &3509459555938995037
 Rigidbody2D:
   serializedVersion: 5

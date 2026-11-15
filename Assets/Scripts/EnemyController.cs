@@ -43,6 +43,19 @@ public class EnemyController : MonoBehaviour
     public float knockbackTime = 0.2f;
     public float redFlashTime = 0.12f;
 
+    [Header("Enemy Sounds")]
+    public AudioClip hurtSound;
+    public AudioClip deathSound;
+
+    [Range(0f, 1f)]
+    public float hurtVolume = 0.5f;
+
+    [Range(0.1f, 3f)]
+    public float minPitch = 0.85f;
+
+    [Range(0.1f, 3f)]
+    public float maxPitch = 1.15f;
+
     [Header("Sprite and Animation")]
     public SpriteRenderer spriteRenderer;
     public bool spriteFacesRight = true;
@@ -249,7 +262,6 @@ public class EnemyController : MonoBehaviour
 
         spriteRenderer.flipX = (direction < 0f) == spriteFacesRight;
     }
-   
 
     public void TakeDamage(int damage)
     {
@@ -260,11 +272,14 @@ public class EnemyController : MonoBehaviour
 
         if (currentHealth <= 0)
         {
-            
+            PlayEnemySound(deathSound);
             DropGold();
             Destroy(gameObject);
             return;
         }
+
+        if (damage > 0)
+            PlayEnemySound(hurtSound);
 
         SetTriggerIfPresent("Hurt");
         FlashRed();
@@ -283,6 +298,34 @@ public class EnemyController : MonoBehaviour
         );
 
         stunnedUntil = Time.time + knockbackTime;
+    }
+
+    void PlayEnemySound(AudioClip clip)
+    {
+        if (clip == null)
+            return;
+
+        // A separate object lets the sound finish after death.
+        GameObject soundObject = new GameObject("Enemy Sound");
+        soundObject.transform.position = transform.position;
+
+        AudioSource audio = soundObject.AddComponent<AudioSource>();
+
+        audio.playOnAwake = false;
+        audio.spatialBlend = 0f;
+        audio.volume = hurtVolume;
+
+        audio.pitch = Random.Range(
+            Mathf.Min(minPitch, maxPitch),
+            Mathf.Max(minPitch, maxPitch)
+        );
+
+        audio.pitch = Mathf.Clamp(audio.pitch, 0.1f, 3f);
+        audio.clip = clip;
+        audio.Play();
+
+        // Lower-pitched sounds take longer to finish.
+        Destroy(soundObject, clip.length / audio.pitch + 0.1f);
     }
 
     void FlashRed()
@@ -356,9 +399,7 @@ public class EnemyController : MonoBehaviour
     void DropGold()
     {
         if (goldPrefab == null)
-        {
             return;
-        }
 
         GameObject coin = Instantiate(
             goldPrefab,

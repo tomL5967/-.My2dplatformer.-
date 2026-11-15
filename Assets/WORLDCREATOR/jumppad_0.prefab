@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 3336595219065953001}
   - component: {fileID: 8393242297134477101}
   - component: {fileID: 2579019258139899099}
+  - component: {fileID: -5441939905573736284}
   m_Layer: 0
   m_Name: jumppad_0
   m_TagString: Untagged
@@ -146,7 +147,7 @@ BoxCollider2D:
   m_CallbackLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
@@ -162,6 +163,22 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 1, y: 1}
   m_EdgeRadius: 0
+--- !u!114 &-5441939905573736284
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3718161786965919105}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83d89852cd31b5c45bd6a634ca1f05b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RuneJumpPad
+  launchForce: 24
+  padAnimator: {fileID: 8393242297134477101}
+  bounceSound: {fileID: 8300000, guid: a9eacba97ddaf8a4084357b5b51acfad, type: 3}
+  soundVolume: 1
 --- !u!1 &8989791300270009788
 GameObject:
   m_ObjectHideFlags: 0
@@ -255,3 +272,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RuneJumpPad
   launchForce: 30
   padAnimator: {fileID: 8393242297134477101}
+  bounceSound: {fileID: 0}
+  soundVolume: 1

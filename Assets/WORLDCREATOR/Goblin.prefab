@@ -131,6 +131,11 @@ MonoBehaviour:
   knockbackUpForce: 2
   knockbackTime: 0.3
   redFlashTime: 0.12
+  hurtSound: {fileID: 8300000, guid: 5bf4c79d59f92c0458f9fc141104a1c4, type: 3}
+  deathSound: {fileID: 8300000, guid: ae9c434f3b065ad42a97b4086a14dc4a, type: 3}
+  hurtVolume: 0.5
+  minPitch: 0.85
+  maxPitch: 1.15
   spriteRenderer: {fileID: 4157495110262782215}
   spriteFacesRight: 0
   animator: {fileID: 0}
@@ -138,6 +143,9 @@ MonoBehaviour:
   maxGoldDrop: 3
   minSilverDrop: 1
   maxSilverDrop: 5
+  goldPrefab: {fileID: 0}
+  minGold: 1
+  maxGold: 5
 --- !u!95 &2287801651366485834
 Animator:
   serializedVersion: 7
@@ -170,7 +178,7 @@ BoxCollider2D:
   m_Enabled: 1
   serializedVersion: 3
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 30e7576b06b4f7145b08801796cc346e, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -222,7 +230,7 @@ Rigidbody2D:
   m_LinearDamping: 0
   m_AngularDamping: 0.05
   m_GravityScale: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 30e7576b06b4f7145b08801796cc346e, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0

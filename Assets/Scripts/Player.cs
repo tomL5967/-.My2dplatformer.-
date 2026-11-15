@@ -46,9 +46,24 @@ public class Player : MonoBehaviour
     public int attackDamage = 1;
     public LayerMask enemyLayer;
 
+    [Header("Sound")]
+    public AudioClip jumpSound;
+    public AudioClip landingSound;
+    public AudioClip hurtSound;
+    public AudioClip runningLoop;
+    [Range(0f, 1f)] public float soundVolume = 0.7f;
+    [Range(0f, 1f)] public float runningVolume = 0.4f;
+    public float minPitch = 0.9f;
+    public float maxPitch = 1.1f;
+
+    private AudioSource soundSource;
+    private AudioSource runningSource;
+    private AudioSource hurtSource;
+
     public Vector2 moveInput;
 
     private bool isGrounded;
+    private bool wasGrounded;
     private bool secondAttackQueued;
     private PlayerStats stats;
 
@@ -70,14 +85,59 @@ public class Player : MonoBehaviour
 
         if (playerInput == null)
             playerInput = GetComponent<PlayerInput>();
+
+        AudioSource[] sources = GetComponents<AudioSource>();
+
+        if (sources.Length > 0)
+            soundSource = sources[0];
+        else
+            soundSource = gameObject.AddComponent<AudioSource>();
+
+        if (sources.Length > 1)
+            runningSource = sources[1];
+        else
+            runningSource = gameObject.AddComponent<AudioSource>();
+
+        if (sources.Length > 2)
+            hurtSource = sources[2];
+        else
+            hurtSource = gameObject.AddComponent<AudioSource>();
+
+        soundSource.playOnAwake = false;
+        soundSource.spatialBlend = 0f;
+
+        runningSource.playOnAwake = false;
+        runningSource.spatialBlend = 0f;
+        runningSource.loop = true;
+        runningSource.clip = runningLoop;
+        runningSource.volume = runningVolume;
+
+        hurtSource.playOnAwake = false;
+        hurtSource.spatialBlend = 0f;
+    }
+
+    void Start()
+    {
+        CheckGrounded();
+        wasGrounded = isGrounded;
     }
 
     void Update()
     {
         if (stats != null && stats.isDead)
+        {
+            StopRunningSound();
             return;
+        }
 
         CheckGrounded();
+
+        if (!wasGrounded && isGrounded)
+            PlaySound(landingSound);
+
+        wasGrounded = isGrounded;
+
+        UpdateRunningSound();
         UpdateRunTime();
         UpdateSpeedEffect();
         Flip();
@@ -105,9 +165,7 @@ public class Player : MonoBehaviour
         }
 
         if (Time.time < jumpSpeedBoostUntil)
-        {
             currentSpeed *= jumpComboSpeedMultiplier;
-        }
 
         rb.linearVelocity = new Vector2(
             moveInput.x * currentSpeed,
@@ -136,6 +194,36 @@ public class Player : MonoBehaviour
         lastRunDirection = currentDirection;
     }
 
+    void UpdateRunningSound()
+    {
+        bool shouldRun =
+            runningLoop != null &&
+            isGrounded &&
+            Mathf.Abs(moveInput.x) > 0.1f &&
+            (stats == null || !stats.isDead);
+
+        if (shouldRun)
+        {
+            if (runningSource.clip != runningLoop)
+                runningSource.clip = runningLoop;
+
+            runningSource.volume = runningVolume;
+
+            if (!runningSource.isPlaying)
+                runningSource.Play();
+        }
+        else
+        {
+            StopRunningSound();
+        }
+    }
+
+    void StopRunningSound()
+    {
+        if (runningSource != null && runningSource.isPlaying)
+            runningSource.Stop();
+    }
+
     void UpdateSpeedEffect()
     {
         if (speedEffect == null)
@@ -152,6 +240,21 @@ public class Player : MonoBehaviour
             speedEffect.Play();
         else if (!shouldPlay && speedEffect.isPlaying)
             speedEffect.Stop();
+    }
+
+    void PlaySound(AudioClip clip)
+    {
+        if (clip != null && soundSource != null)
+            soundSource.PlayOneShot(clip, soundVolume);
+    }
+
+    public void PlayHurtSound()
+    {
+        if (hurtSound == null || hurtSource == null)
+            return;
+
+        hurtSource.pitch = Random.Range(minPitch, maxPitch);
+        hurtSource.PlayOneShot(hurtSound, soundVolume);
     }
 
     public void OnMove(InputValue value)
@@ -196,6 +299,7 @@ public class Player : MonoBehaviour
                 currentJumpForce
             );
 
+            PlaySound(jumpSound);
             isGrounded = false;
 
             if (animator != null)
@@ -253,8 +357,6 @@ public class Player : MonoBehaviour
 
     public void DealDamage()
     {
-        // Add this as an Animation Event on the hit frame
-        // of both attack animations.
         if ((stats != null && stats.isDead) || attackPoint == null)
             return;
 
@@ -264,8 +366,6 @@ public class Player : MonoBehaviour
             enemyLayer
         );
 
-        // Prevent one attack hitting the same enemy twice
-        // if it has multiple colliders.
         HashSet<EnemyController> hitEnemies =
             new HashSet<EnemyController>();
 
@@ -316,6 +416,11 @@ public class Player : MonoBehaviour
                 groundLayer
             ) != null &&
             rb.linearVelocity.y <= 0.1f;
+    }
+
+    void OnDisable()
+    {
+        StopRunningSound();
     }
 
     void OnDrawGizmosSelected()
